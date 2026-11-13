@@ -134,20 +134,39 @@
   <!-- ========================================================= -->
   <!-- 2. หน้าสำหรับแอดมิน / เจ้าหน้าที่สำรวจ (ADMIN VIEW)          -->
   <!-- ========================================================= -->
-  <section id="adminSection" class="max-w-3xl mx-auto px-4 mt-6 hidden">
-    <div class="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-xl mb-5 flex flex-wrap justify-between items-center gap-2 text-sm">
+  <section id="adminSection" class="max-w-3xl mx-auto px-4 mt-6 hidden space-y-6">
+    <!-- แถบสถานะเจ้าหน้าที่ -->
+    <div class="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-xl flex flex-wrap justify-between items-center gap-2 text-sm">
       <div>
-        <span id="adminModeTitle">🛠️ <strong>โหมดเจ้าหน้าที่สำรวจข้อมูล (เพิ่มข้อมูลใหม่)</strong></span>
+        <span id="adminModeTitle">🛠️ <strong>โหมดเจ้าหน้าที่สำรวจข้อมูล</strong></span>
         <span id="loggedInUserEmail" class="text-xs block text-amber-700"></span>
       </div>
       <div class="flex items-center gap-2">
         <button id="cancelEditBtn" type="button" onclick="cancelEditMode()" class="hidden text-xs bg-slate-200 hover:bg-slate-300 text-slate-800 px-3 py-1.5 rounded-lg font-semibold">
-          ยกเลิกการแก้ไข
+          + เพิ่มหอพักใหม่
         </button>
         <button onclick="logoutAdmin()" class="text-xs bg-amber-200 hover:bg-amber-300 px-3 py-1.5 rounded-lg font-semibold">
           ออกจากระบบ
         </button>
       </div>
+    </div>
+
+    <!-- กล่องจัดการข้อมูลหอพักที่สำรวจแล้ว (ค้นหา / แก้ไข / อัปเดตสถานะ) -->
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
+      <div class="flex flex-wrap justify-between items-center gap-2 border-b pb-2.5">
+        <h2 class="text-base md:text-lg font-bold text-[#1B365D]">📋 รายการหอพักที่สำรวจแล้ว (เลือกเพื่อแก้ไข/อัปเดต)</h2>
+        <button type="button" onclick="fetchDorms()" class="text-xs text-blue-700 hover:underline font-semibold">🔄 โหลดรายการล่าสุด</button>
+      </div>
+      <input type="text" id="adminDormSearch" oninput="renderAdminDormList()" placeholder="🔍 พิมพ์ชื่อหอพัก, รหัสหอ หรือโซน เพื่อค้นหาหอพักที่ต้องการแก้ไข..." class="w-full border border-slate-300 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:border-blue-600">
+      <div id="adminDormList" class="max-h-64 overflow-y-auto divide-y divide-slate-200 border border-slate-200 rounded-lg bg-slate-50">
+        <!-- รายการหอพักจะถูกเติมด้วย JS -->
+      </div>
+    </div>
+
+    <!-- หัวข้อฟอร์ม -->
+    <div id="formAnchor" class="bg-[#1B365D] text-white px-4 py-3 rounded-xl flex justify-between items-center shadow-sm">
+      <span id="formHeaderTitle" class="font-bold text-base">➕ แบบฟอร์มบันทึกข้อมูลหอพักใหม่</span>
+      <span id="formHeaderBadge" class="text-xs bg-emerald-500 text-white px-2.5 py-0.5 rounded-full font-semibold">เพิ่มรายการใหม่</span>
     </div>
 
     <form id="surveyForm" class="space-y-6">
@@ -157,7 +176,7 @@
       <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label class="block text-sm font-semibold mb-1">วันที่สำรวจ</label>
+            <label class="block text-sm font-semibold mb-1">วันที่สำรวจ / อัปเดต</label>
             <input type="date" id="survey_date" required class="w-full border rounded-lg p-2 text-sm">
           </div>
           <div>
@@ -484,9 +503,14 @@
       </div>
 
       <!-- Submit Button -->
-      <button type="submit" id="submitBtn" class="w-full bg-[#1B365D] hover:bg-blue-900 text-white font-bold py-3.5 rounded-xl shadow-lg text-lg transition">
-        💾 บันทึกข้อมูลและรูปภาพเข้าสู่ระบบ
-      </button>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button type="submit" id="submitBtn" class="flex-1 bg-[#1B365D] hover:bg-blue-900 text-white font-bold py-3.5 rounded-xl shadow-lg text-lg transition">
+          💾 บันทึกข้อมูลและรูปภาพเข้าสู่ระบบ
+        </button>
+        <button type="button" id="cancelEditBottomBtn" onclick="cancelEditMode()" class="hidden bg-slate-300 hover:bg-slate-400 text-slate-800 font-bold py-3.5 px-6 rounded-xl text-base transition">
+          ยกเลิกการแก้ไข
+        </button>
+      </div>
     </form>
   </section>
 
@@ -546,7 +570,6 @@
 
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      // ตัดช่องว่างและปรับตัวพิมพ์เล็กอัตโนมัติสำหรับมือถือ
       const email = document.getElementById('adminEmail').value.trim().toLowerCase();
       const password = document.getElementById('adminPassword').value.trim();
       const btn = document.getElementById('loginSubmitBtn');
@@ -596,6 +619,7 @@
         admSec.classList.remove('hidden');
         btnAdm.className = 'bg-amber-400 text-slate-900 font-bold text-xs md:text-sm px-3.5 py-2 rounded-lg shadow-sm transition';
         btnPub.className = 'bg-blue-800 hover:bg-blue-700 text-white border border-blue-400 font-semibold text-xs md:text-sm px-3.5 py-2 rounded-lg transition';
+        renderAdminDormList();
       }
     }
 
@@ -645,7 +669,7 @@
     }
 
     // ==========================================
-    // 4. ส่วนแสดงผลหน้าผู้ใช้งานทั่วไป (PUBLIC)
+    // 4. โหลดข้อมูลและแสดงผลหน้าทั่วไป (PUBLIC) + รายการฝั่งเจ้าหน้าที่
     // ==========================================
     async function fetchDorms() {
       const { data, error } = await db
@@ -660,6 +684,55 @@
       }
       allDorms = data || [];
       filterDorms();
+      renderAdminDormList();
+    }
+
+    function renderAdminDormList() {
+      const container = document.getElementById('adminDormList');
+      if (!container) return;
+
+      const keyword = (document.getElementById('adminDormSearch')?.value || '').toLowerCase().trim();
+      const filtered = allDorms.filter(d => {
+        return !keyword ||
+          (d.dorm_name && d.dorm_name.toLowerCase().includes(keyword)) ||
+          (d.dorm_code && d.dorm_code.toLowerCase().includes(keyword)) ||
+          (d.zone && d.zone.toLowerCase().includes(keyword)) ||
+          (d.soi_road && d.soi_road.toLowerCase().includes(keyword));
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">ไม่พบรายการหอพักในระบบ</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(d => {
+        const statusColor = d.vacancy_status === 'ว่างพร้อมเข้าอยู่'
+          ? 'bg-emerald-100 text-emerald-800'
+          : 'bg-slate-200 text-slate-700';
+
+        return `
+          <div class="p-3 bg-white hover:bg-blue-50/40 flex flex-wrap items-center justify-between gap-2 transition">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                ${d.dorm_code ? `<span class="text-[11px] font-mono bg-slate-100 border px-1.5 py-0.5 rounded text-slate-600">${d.dorm_code}</span>` : ''}
+                <span class="font-bold text-sm text-slate-900 truncate">${d.dorm_name}</span>
+                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${statusColor}">${d.vacancy_status || 'ไม่ระบุ'}</span>
+              </div>
+              <div class="text-xs text-slate-500 mt-0.5">
+                📍 ${d.zone || '-'} • 📞 ${d.phone_1 || '-'} • อัปเดตล่าสุด: ${d.survey_date || '-'}
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" onclick="startEditDorm(${d.id})" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">
+                ✏️ แก้ไข / อัปเดต
+              </button>
+              <button type="button" onclick="deleteDorm(${d.id})" class="bg-red-100 hover:bg-red-600 text-red-700 hover:text-white text-xs font-bold px-2.5 py-1.5 rounded-lg transition">
+                🗑️
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     function getMinPriceNumber(d) {
@@ -803,13 +876,12 @@
            </a>`
         : '';
 
-      // ปุ่มแก้ไขและลบสำหรับเจ้าหน้าที่ที่ล็อกอินอยู่
       const adminActionsHtml = currentUser
         ? `<div class="bg-amber-50 border border-amber-300 p-3 rounded-xl flex flex-wrap justify-between items-center gap-2">
             <span class="text-xs font-bold text-amber-900">🛠️ เครื่องมือเจ้าหน้าที่:</span>
             <div class="flex gap-2">
               <button onclick="startEditDorm(${d.id})" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
-                ✏️ แก้ไขข้อมูลหอพักนี้
+                ✏️ แก้ไข / อัปเดตข้อมูล
               </button>
               <button onclick="deleteDorm(${d.id})" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
                 🗑️ ลบข้อมูล
@@ -902,9 +974,13 @@
       switchTab('admin');
 
       document.getElementById('editingDormId').value = d.id;
-      document.getElementById('adminModeTitle').innerHTML = `✏️ <strong>กำลังแก้ไขข้อมูล: ${d.dorm_name}</strong>`;
+      document.getElementById('formHeaderTitle').innerText = `✏️ กำลังแก้ไขข้อมูล: ${d.dorm_name}`;
+      document.getElementById('formHeaderBadge').innerText = 'โหมดแก้ไข / อัปเดต';
+      document.getElementById('formHeaderBadge').className = 'text-xs bg-amber-400 text-slate-900 px-2.5 py-0.5 rounded-full font-bold';
       document.getElementById('cancelEditBtn').classList.remove('hidden');
-      document.getElementById('submitBtn').innerText = '💾 บันทึกการแก้ไขข้อมูล';
+      document.getElementById('cancelEditBottomBtn').classList.remove('hidden');
+      document.getElementById('submitBtn').innerText = '💾 บันทึกการอัปเดตข้อมูล';
+      document.getElementById('submitBtn').className = 'flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3.5 rounded-xl shadow-lg text-lg transition';
 
       // เติมค่าเดิมลงในฟอร์ม
       document.getElementById('survey_date').value = d.survey_date || '';
@@ -969,14 +1045,18 @@
       existingGalleryUrls = d.photo_urls ? [...d.photo_urls] : [];
       renderGalleryPreviews();
 
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.getElementById('formAnchor').scrollIntoView({ behavior: 'smooth' });
     }
 
     function cancelEditMode() {
       document.getElementById('editingDormId').value = '';
-      document.getElementById('adminModeTitle').innerHTML = `🛠️ <strong>โหมดเจ้าหน้าที่สำรวจข้อมูล (เพิ่มข้อมูลใหม่)</strong>`;
+      document.getElementById('formHeaderTitle').innerText = '➕ แบบฟอร์มบันทึกข้อมูลหอพักใหม่';
+      document.getElementById('formHeaderBadge').innerText = 'เพิ่มรายการใหม่';
+      document.getElementById('formHeaderBadge').className = 'text-xs bg-emerald-500 text-white px-2.5 py-0.5 rounded-full font-semibold';
       document.getElementById('cancelEditBtn').classList.add('hidden');
+      document.getElementById('cancelEditBottomBtn').classList.add('hidden');
       document.getElementById('submitBtn').innerText = '💾 บันทึกข้อมูลและรูปภาพเข้าสู่ระบบ';
+      document.getElementById('submitBtn').className = 'flex-1 bg-[#1B365D] hover:bg-blue-900 text-white font-bold py-3.5 rounded-xl shadow-lg text-lg transition';
       document.getElementById('surveyForm').reset();
       document.getElementById('survey_date').valueAsDate = new Date();
       removeCoverImage();
@@ -993,6 +1073,9 @@
       } else {
         alert('🗑️ ลบข้อมูลหอพักเรียบร้อยแล้ว');
         closeModal();
+        if (document.getElementById('editingDormId').value == id) {
+          cancelEditMode();
+        }
         fetchDorms();
       }
     }
@@ -1037,7 +1120,6 @@
       const container = document.getElementById('galleryPreviewContainer');
       container.innerHTML = '';
 
-      // แสดงรูปเดิมที่มีในฐานข้อมูล (กรณีแก้ไข)
       existingGalleryUrls.forEach((url, index) => {
         const div = document.createElement('div');
         div.className = 'relative aspect-square rounded-lg overflow-hidden border border-slate-300 bg-white shadow-sm';
@@ -1050,7 +1132,6 @@
         container.appendChild(div);
       });
 
-      // แสดงรูปใหม่ที่เพิ่งเลือก/ถ่าย
       galleryFiles.forEach((file, index) => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -1213,7 +1294,7 @@
       if (error) {
         alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
       } else {
-        alert(editingId ? '✅ แก้ไขข้อมูลหอพักเรียบร้อยแล้ว!' : '✅ บันทึกข้อมูลและรูปภาพเรียบร้อยแล้ว!');
+        alert(editingId ? '✅ อัปเดตข้อมูลหอพักเรียบร้อยแล้ว!' : '✅ บันทึกข้อมูลและรูปภาพเรียบร้อยแล้ว!');
         const sName = document.getElementById('surveyor_name').value;
         const sDept = document.getElementById('surveyor_dept').value;
         const sPhone = document.getElementById('surveyor_phone').value;
@@ -1223,11 +1304,8 @@
         document.getElementById('surveyor_dept').value = sDept;
         document.getElementById('surveyor_phone').value = sPhone;
         
-        if (editingId) {
-          switchTab('public');
-        } else {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        await fetchDorms();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
 
       btn.disabled = false;
