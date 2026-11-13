@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบสำรวจข้อมูลหอพักรอบมหาวิทยาลัย</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Sarabun', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 pb-12">
+
+  <!-- Header -->
+  <header class="bg-[#1B365D] text-white py-5 px-4 shadow-md sticky top-0 z-10">
+    <div class="max-w-3xl mx-auto flex justify-between items-center">
+      <div>
+        <h1 class="text-xl md:text-2xl font-bold">แบบฟอร์มสำรวจข้อมูลหอพัก</h1>
+        <p class="text-xs md:text-sm text-slate-200">ระบบบันทึกข้อมูลภาคสนามสำหรับเจ้าหน้าที่</p>
+      </div>
+      <span id="recordCount" class="bg-blue-800 text-xs px-3 py-1.5 rounded-full border border-blue-400">
+        บันทึกแล้ว: 0 แห่ง
+      </span>
+    </div>
+  </header>
+
+  <!-- Main Form -->
+  <main class="max-w-3xl mx-auto px-4 mt-6">
+    <form id="surveyForm" class="space-y-6">
+
+      <!-- ข้อมูลการสำรวจเบื้องต้น -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">วันที่สำรวจ</label>
+            <input type="date" id="survey_date" required class="w-full border rounded-lg p-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">รหัสหอพัก (ถ้ามี)</label>
+            <input type="text" id="dorm_code" placeholder="เช่น D-001" class="w-full border rounded-lg p-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">โซนพื้นที่</label>
+            <input type="text" id="zone" placeholder="เช่น หน้ามอ / หลังมอ" class="w-full border rounded-lg p-2 text-sm">
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. ชื่อหอพัก & 2. Location -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <h2 class="text-lg font-bold text-[#1B365D] border-b pb-2">1-2. ชื่อหอพักและตำแหน่งที่ตั้ง</h2>
+        <div>
+          <label class="block text-sm font-semibold mb-1">ชื่อหอพัก <span class="text-red-500">*</span></label>
+          <input type="text" id="dorm_name" required placeholder="ระบุชื่อหอพัก" class="w-full border rounded-lg p-2.5">
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">ซอย / ถนน</label>
+            <input type="text" id="soi_road" placeholder="เช่น ซอยสดใส" class="w-full border rounded-lg p-2">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">จุดสังเกตใกล้เคียง</label>
+            <input type="text" id="landmark" placeholder="เช่น ตรงข้าม 7-11" class="w-full border rounded-lg p-2">
+          </div>
+        </div>
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <span class="text-sm font-semibold">พิกัด GPS (ปักหมุดหน้างาน)</span>
+            <button type="button" onclick="getGPS()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold">
+              📍 ดึงพิกัดตำแหน่งปัจจุบัน
+            </button>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <input type="number" step="any" id="latitude" placeholder="ละติจูด (Latitude)" class="w-full border rounded-lg p-2 text-sm bg-white">
+            <input type="number" step="any" id="longitude" placeholder="ลองจิจูด (Longitude)" class="w-full border rounded-lg p-2 text-sm bg-white">
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. ข้อมูลการติดต่อ -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <h2 class="text-lg font-bold text-[#1B365D] border-b pb-2">3. ข้อมูลการติดต่อ</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">ชื่อผู้ติดต่อ</label>
+            <input type="text" id="contact_name" placeholder="ชื่อเจ้าของ หรือ ผู้ดูแล" class="w-full border rounded-lg p-2">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">ตำแหน่ง</label>
+            <select id="contact_role" class="w-full border rounded-lg p-2 bg-white">
+              <option value="เจ้าของหอพัก">เจ้าของหอพัก</option>
+              <option value="ผู้ดูแล/นิติบุคคล">ผู้ดูแล / นิติบุคคล</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">เบอร์โทรศัพท์หลัก <span class="text-red-500">*</span></label>
+            <input type="tel" id="phone_1" required placeholder="08X-XXX-XXXX" class="w-full border rounded-lg p-2">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">เบอร์โทรสำรอง / Line ID</label>
+            <input type="text" id="phone_2_line" placeholder="ระบุเบอร์หรือ Line ID" class="w-full border rounded-lg p-2">
+          </div>
+        </div>
+      </div>
+
+      <!-- 4-5. ประเภทหอพักและห้องพัก -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <h2 class="text-lg font-bold text-[#1B365D] border-b pb-2">4-5. ประเภทหอพักและห้องพัก</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">กลุ่มผู้เช่า</label>
+            <select id="tenant_type" class="w-full border rounded-lg p-2 bg-white">
+              <option value="เฉพาะนักศึกษา">เฉพาะนักศึกษา</option>
+              <option value="นักศึกษาและบุคคลทั่วไป">นักศึกษาและบุคคลทั่วไป</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">การแยกโซนผู้พัก</label>
+            <select id="gender_zone" class="w-full border rounded-lg p-2 bg-white">
+              <option value="หอพักรวม">หอพักรวม</option>
+              <option value="หอพักหญิงล้วน">หอพักหญิงล้วน</option>
+              <option value="หอพักชายล้วน">หอพักชายล้วน</option>
+              <option value="แยกชั้น/แยกตึก ชาย-หญิง">แยกชั้น/แยกตึก ชาย-หญิง</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div class="flex items-center gap-2 border p-2.5 rounded-lg">
+            <input type="checkbox" id="has_fan_room" class="w-4 h-4">
+            <label for="has_fan_room" class="text-sm font-semibold">ห้องพัดลม</label>
+            <input type="number" id="fan_room_count" placeholder="จำนวนห้อง" class="ml-auto w-24 border rounded p-1 text-sm">
+          </div>
+          <div class="flex items-center gap-2 border p-2.5 rounded-lg">
+            <input type="checkbox" id="has_ac_room" class="w-4 h-4">
+            <label for="has_ac_room" class="text-sm font-semibold">ห้องแอร์</label>
+            <input type="number" id="ac_room_count" placeholder="จำนวนห้อง" class="ml-auto w-24 border rounded p-1 text-sm">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold mb-1">รูปแบบห้องพัก (เลือกได้หลายข้อ)</label>
+          <div class="flex flex-wrap gap-4 text-sm">
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="room_styles" value="ห้องเดี่ยว/สตูดิโอ"> ห้องเดี่ยว/สตูดิโอ</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="room_styles" value="1 ห้องนอน"> 1 ห้องนอน</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="room_styles" value="ห้องเตียงคู่"> ห้องเตียงคู่ (แชร์รูมเมท)</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. สิ่งอำนวยความสะดวก -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <h2 class="text-lg font-bold text-[#1B365D] border-b pb-2">6. สิ่งอำนวยความสะดวก</h2>
+        <div>
+          <label class="block text-sm font-semibold mb-1.5">ภายในห้องพัก</label>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="room_amenities" value="เตียง/ที่นอน"> เตียง/ที่นอน</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="room_amenities" value="ตู้เสื้อผ้า"> ตู้เสื้อผ้า</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="room_amenities" value="โต๊ะอ่านหนังสือ"> โต๊ะอ่านหนังสือ</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="room_amenities" value="ทีวี"> ทีวี</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="room_amenities" value="ตู้เย็น"> ตู้เย็น</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="room_amenities" value="เครื่องทำน้ำอุ่น"> เครื่องทำน้ำอุ่น</label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold mb-1.5">ส่วนกลางและบริการ</label>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm mb-2">
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="common_amenities" value="Wi-Fi"> มีบริการ Wi-Fi</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="common_amenities" value="เครื่องซักผ้าหยอดเหรียญ"> เครื่องซักผ้าหยอดเหรียญ</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="common_amenities" value="ตู้น้ำดื่ม"> ตู้น้ำดื่ม</label>
+          </div>
+          <input type="text" id="wifi_fee" placeholder="ค่าบริการ Wi-Fi (เช่น ฟรี หรือ 100 บาท/เดือน)" class="w-full border rounded-lg p-2 text-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold mb-1.5">ที่จอดรถและความปลอดภัย</label>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm mb-2">
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="parking_security" value="ที่จอดมอเตอร์ไซค์"> ที่จอดมอเตอร์ไซค์</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="parking_security" value="ที่จอดรถยนต์"> ที่จอดรถยนต์</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="parking_security" value="คีย์การ์ด"> คีย์การ์ด/สแกนนิ้ว</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="parking_security" value="CCTV"> กล้องวงจรปิด (CCTV)</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="parking_security" value="รปภ./ผู้ดูแล 24 ชม."> รปภ./ผู้ดูแล 24 ชม.</label>
+          </div>
+          <input type="text" id="car_parking_fee" placeholder="รายละเอียดที่จอดรถยนต์ (เช่น จอดฟรี หรือ เดือนละ 300 บาท)" class="w-full border rounded-lg p-2 text-sm">
+        </div>
+      </div>
+
+      <!-- 7-8. ค่ามัดจำและค่าใช้จ่ายรายเดือน -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <h2 class="text-lg font-bold text-[#1B365D] border-b pb-2">7-8. ค่ามัดจำและค่าใช้จ่ายรายเดือน</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">ค่ามัดจำ/ประกัน (บาท)</label>
+            <input type="number" id="deposit_amount" placeholder="0" class="w-full border rounded-lg p-2">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">ค่าเช่าล่วงหน้า (บาท)</label>
+            <input type="number" id="advance_rent_amount" placeholder="0" class="w-full border rounded-lg p-2">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">สัญญาเช่าขั้นต่ำ</label>
+            <select id="min_contract" class="w-full border rounded-lg p-2 bg-white">
+              <option value="ไม่มี">ไม่มีสัญญาขั้นต่ำ</option>
+              <option value="3 เดือน">3 เดือน</option>
+              <option value="6 เดือน">6 เดือน</option>
+              <option value="1 ปี">1 ปี</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+          <div>
+            <label class="block text-xs font-semibold mb-1">ห้องพัดลม (เริ่มต้น)</label>
+            <input type="number" id="fan_price_min" placeholder="บาท/เดือน" class="w-full border rounded-lg p-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">ห้องพัดลม (สูงสุด)</label>
+            <input type="number" id="fan_price_max" placeholder="บาท/เดือน" class="w-full border rounded-lg p-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">ห้องแอร์ (เริ่มต้น)</label>
+            <input type="number" id="ac_price_min" placeholder="บาท/เดือน" class="w-full border rounded-lg p-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">ห้องแอร์ (สูงสุด)</label>
+            <input type="number" id="ac_price_max" placeholder="บาท/เดือน" class="w-full border rounded-lg p-2 text-sm">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">ค่าน้ำประปา</label>
+            <input type="text" id="water_rate" placeholder="เช่น 18 บ./หน่วย หรือ เหมา 100 บ." class="w-full border rounded-lg p-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">ค่าไฟฟ้า (บาท/หน่วย)</label>
+            <input type="number" step="0.1" id="electric_rate" placeholder="เช่น 7" class="w-full border rounded-lg p-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">ค่าส่วนกลาง/ขยะ (ถ้ามี)</label>
+            <input type="text" id="other_monthly_fee" placeholder="ระบุจำนวนเงิน" class="w-full border rounded-lg p-2 text-sm">
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. บันทึกเพิ่มเติมและข้อมูลผู้สำรวจ -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <h2 class="text-lg font-bold text-[#1B365D] border-b pb-2">9. สถานะห้องว่างและผู้สำรวจ</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">สถานะห้องว่างปัจจุบัน</label>
+            <select id="vacancy_status" class="w-full border rounded-lg p-2 bg-white">
+              <option value="ว่างพร้อมเข้าอยู่">ว่างพร้อมเข้าอยู่</option>
+              <option value="เต็ม (เปิดจองล่วงหน้า)">เต็ม (เปิดจองล่วงหน้า)</option>
+              <option value="เต็มทั้งหมด">เต็มทั้งหมด</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">จำนวนห้องว่างโดยประมาณ</label>
+            <input type="number" id="vacant_count" placeholder="ระบุจำนวนห้อง" class="w-full border rounded-lg p-2">
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-6 text-sm pt-1">
+          <label class="flex items-center gap-2"><input type="checkbox" id="allow_photo" class="w-4 h-4"> อนุญาตให้ถ่ายภาพหน้าตึก/ห้องพัก</label>
+          <label class="flex items-center gap-2"><input type="checkbox" id="has_brochure" class="w-4 h-4"> รับโบรชัวร์/นามบัตรมาแล้ว</label>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold mb-1">หมายเหตุเพิ่มเติม</label>
+          <textarea id="notes" rows="2" placeholder="รายละเอียดอื่นๆ เช่น ช่วงเดือนที่เปิดจอง หรือโปรโมชัน" class="w-full border rounded-lg p-2 text-sm"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-lg border">
+          <div>
+            <label class="block text-xs font-semibold mb-1">ชื่อเจ้าหน้าที่ผู้สำรวจ</label>
+            <input type="text" id="surveyor_name" placeholder="ชื่อ-สกุล" class="w-full border rounded p-1.5 text-sm bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">หน่วยงาน/คณะ</label>
+            <input type="text" id="surveyor_dept" placeholder="ระบุหน่วยงาน" class="w-full border rounded p-1.5 text-sm bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">เบอร์โทรเจ้าหน้าที่</label>
+            <input type="tel" id="surveyor_phone" placeholder="08X-XXX-XXXX" class="w-full border rounded p-1.5 text-sm bg-white">
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" id="submitBtn" class="w-full bg-[#1B365D] hover:bg-blue-900 text-white font-bold py-3.5 rounded-xl shadow-lg text-lg transition">
+        💾 บันทึกข้อมูลหอพักเข้าสู่ระบบ
+      </button>
+
+    </form>
+  </main>
+
+  <script>
+    // ==========================================
+    // ตั้งค่า SUPABASE (นำค่าจาก Project Settings > API มาใส่ตรงนี้)
+    // ==========================================
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ตั้งค่าวันที่ปัจจุบันเป็นค่าเริ่มต้น
+    document.getElementById('survey_date').valueAsDate = new Date();
+
+    // ดึงจำนวนข้อมูลที่บันทึกแล้วมาแสดงบน Header
+    async function loadCount() {
+      const { count, error } = await db.from('dormitories').select('*', { count: 'exact', head: true });
+      if (!error && count !== null) {
+        document.getElementById('recordCount').innerText = `บันทึกแล้ว: ${count} แห่ง`;
+      }
+    }
+    loadCount();
+
+    // ฟังก์ชันดึงพิกัด GPS
+    function getGPS() {
+      if (!navigator.geolocation) {
+        alert('เบราว์เซอร์ของคุณไม่รองรับการดึงพิกัด GPS');
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          document.getElementById('latitude').value = pos.coords.latitude.toFixed(6);
+          document.getElementById('longitude').value = pos.coords.longitude.toFixed(6);
+          alert('ดึงพิกัด GPS สำเร็จ!');
+        },
+        (err) => {
+          alert('ไม่สามารถดึงพิกัดได้ กรุณาเปิดสิทธิ์ Location บนมือถือ');
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+
+    // ฟังก์ชันรวบรวมค่าจาก Checkbox
+    function getCheckedValues(name) {
+      return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
+    }
+
+    // ส่งข้อมูลเข้า Supabase
+    document.getElementById('surveyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerText = 'กำลังบันทึกข้อมูล...';
+
+      const payload = {
+        survey_date: document.getElementById('survey_date').value || null,
+        dorm_code: document.getElementById('dorm_code').value,
+        zone: document.getElementById('zone').value,
+        dorm_name: document.getElementById('dorm_name').value,
+        soi_road: document.getElementById('soi_road').value,
+        landmark: document.getElementById('landmark').value,
+        latitude: parseFloat(document.getElementById('latitude').value) || null,
+        longitude: parseFloat(document.getElementById('longitude').value) || null,
+        contact_name: document.getElementById('contact_name').value,
+        contact_role: document.getElementById('contact_role').value,
+        phone_1: document.getElementById('phone_1').value,
+        phone_2_line: document.getElementById('phone_2_line').value,
+        tenant_type: document.getElementById('tenant_type').value,
+        gender_zone: document.getElementById('gender_zone').value,
+        has_fan_room: document.getElementById('has_fan_room').checked,
+        fan_room_count: parseInt(document.getElementById('fan_room_count').value) || null,
+        has_ac_room: document.getElementById('has_ac_room').checked,
+        ac_room_count: parseInt(document.getElementById('ac_room_count').value) || null,
+        room_styles: getCheckedValues('room_styles'),
+        room_amenities: getCheckedValues('room_amenities'),
+        common_amenities: getCheckedValues('common_amenities'),
+        wifi_fee: document.getElementById('wifi_fee').value,
+        parking_security: getCheckedValues('parking_security'),
+        car_parking_fee: document.getElementById('car_parking_fee').value,
+        deposit_amount: parseFloat(document.getElementById('deposit_amount').value) || null,
+        advance_rent_amount: parseFloat(document.getElementById('advance_rent_amount').value) || null,
+        min_contract: document.getElementById('min_contract').value,
+        fan_price_min: parseFloat(document.getElementById('fan_price_min').value) || null,
+        fan_price_max: parseFloat(document.getElementById('fan_price_max').value) || null,
+        ac_price_min: parseFloat(document.getElementById('ac_price_min').value) || null,
+        ac_price_max: parseFloat(document.getElementById('ac_price_max').value) || null,
+        water_rate: document.getElementById('water_rate').value,
+        electric_rate: parseFloat(document.getElementById('electric_rate').value) || null,
+        other_monthly_fee: document.getElementById('other_monthly_fee').value,
+        vacancy_status: document.getElementById('vacancy_status').value,
+        vacant_count: parseInt(document.getElementById('vacant_count').value) || null,
+        allow_photo: document.getElementById('allow_photo').checked,
+        has_brochure: document.getElementById('has_brochure').checked,
+        notes: document.getElementById('notes').value,
+        surveyor_name: document.getElementById('surveyor_name').value,
+        surveyor_dept: document.getElementById('surveyor_dept').value,
+        surveyor_phone: document.getElementById('surveyor_phone').value
+      };
+
+      const { error } = await db.from('dormitories').insert([payload]);
+
+      if (error) {
+        alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
+      } else {
+        alert('✅ บันทึกข้อมูลหอพักเรียบร้อยแล้ว!');
+        // เก็บชื่อเจ้าหน้าที่ไว้กรอกหอถัดไปอัตโนมัติ
+        const sName = document.getElementById('surveyor_name').value;
+        const sDept = document.getElementById('surveyor_dept').value;
+        const sPhone = document.getElementById('surveyor_phone').value;
+        
+        document.getElementById('surveyForm').reset();
+        document.getElementById('survey_date').valueAsDate = new Date();
+        document.getElementById('surveyor_name').value = sName;
+        document.getElementById('surveyor_dept').value = sDept;
+        document.getElementById('surveyor_phone').value = sPhone;
+        
+        loadCount();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      btn.disabled = false;
+      btn.innerText = '💾 บันทึกข้อมูลหอพักเข้าสู่ระบบ';
+    });
+  </script>
+</body>
+</html>
