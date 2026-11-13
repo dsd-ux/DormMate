@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DromeMate - ระบบฐานข้อมูลและค้นหาหอพักรอบ มรภ.พระนครศรีอยุธยา</title>
+  <title>DormMate - ระบบฐานข้อมูลและค้นหาหอพักรอบ มรภ.พระนครศรีอยุธยา</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
     <div class="max-w-5xl mx-auto flex flex-wrap justify-between items-center gap-3">
       <div class="cursor-pointer" onclick="switchTab('public')">
         <h1 class="text-xl md:text-2xl font-bold flex items-center gap-2">
-          <span>🏢</span> DromeMate
+          <span>🏢</span> DormMate
         </h1>
         <p class="text-xs text-slate-200">ฐานข้อมูลหอพักรอบมหาวิทยาลัยราชภัฏพระนครศรีอยุธยา</p>
       </div>
@@ -118,7 +118,7 @@
       <form id="loginForm" class="space-y-3">
         <div>
           <label class="block text-sm font-semibold mb-1">อีเมลเจ้าหน้าที่ (Email)</label>
-          <input type="email" id="adminEmail" required placeholder="staff@example.com" class="w-full border rounded-xl p-2.5 text-sm">
+          <input type="email" id="adminEmail" required autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="staff@example.com" class="w-full border rounded-xl p-2.5 text-sm">
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">รหัสผ่าน (Password)</label>
@@ -137,13 +137,22 @@
   <section id="adminSection" class="max-w-3xl mx-auto px-4 mt-6 hidden">
     <div class="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-xl mb-5 flex flex-wrap justify-between items-center gap-2 text-sm">
       <div>
-        <span>🛠️ <strong>โหมดเจ้าหน้าที่สำรวจข้อมูล</strong></span>
+        <span id="adminModeTitle">🛠️ <strong>โหมดเจ้าหน้าที่สำรวจข้อมูล (เพิ่มข้อมูลใหม่)</strong></span>
         <span id="loggedInUserEmail" class="text-xs block text-amber-700"></span>
       </div>
-      <button onclick="logoutAdmin()" class="text-xs bg-amber-200 hover:bg-amber-300 px-3 py-1.5 rounded-lg font-semibold">ออกจากระบบ</button>
+      <div class="flex items-center gap-2">
+        <button id="cancelEditBtn" type="button" onclick="cancelEditMode()" class="hidden text-xs bg-slate-200 hover:bg-slate-300 text-slate-800 px-3 py-1.5 rounded-lg font-semibold">
+          ยกเลิกการแก้ไข
+        </button>
+        <button onclick="logoutAdmin()" class="text-xs bg-amber-200 hover:bg-amber-300 px-3 py-1.5 rounded-lg font-semibold">
+          ออกจากระบบ
+        </button>
+      </div>
     </div>
 
     <form id="surveyForm" class="space-y-6">
+      <input type="hidden" id="editingDormId" value="">
+
       <!-- ข้อมูลการสำรวจเบื้องต้น -->
       <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -303,7 +312,6 @@
       <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
         <h2 class="text-lg font-bold text-[#1B365D] border-b pb-2">6. สิ่งอำนวยความสะดวกและกฎระเบียบหอพัก</h2>
         
-        <!-- กฎระเบียบสำคัญที่นักศึกษาต้องรู้ -->
         <div class="bg-blue-50/70 p-3.5 rounded-xl border border-blue-200">
           <label class="block text-sm font-bold text-[#1B365D] mb-2">📋 กฎระเบียบสำคัญ (ติ๊กเลือกสิ่งที่หอพักอนุญาต)</label>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-sm">
@@ -490,19 +498,20 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_0S3CCpYJqh2HsojcPSV0LQ_ZXAAn8HO';
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // พิกัดมหาวิทยาลัยราชภัฏพระนครศรีอยุธยา (ARU)
     const ARU_LAT = 14.3490;
     const ARU_LNG = 100.5653;
 
     let allDorms = [];
     let currentUser = null;
     let coverFile = null;
+    let existingCoverUrl = null;
     let galleryFiles = [];
+    let existingGalleryUrls = [];
 
     document.getElementById('survey_date').valueAsDate = new Date();
 
     // ==========================================
-    // 2. ระบบยืนยันตัวตน SUPABASE AUTH (EMAIL / PASSWORD)
+    // 2. ระบบยืนยันตัวตน SUPABASE AUTH
     // ==========================================
     async function checkAuthSession() {
       const { data: { session } } = await db.auth.getSession();
@@ -537,8 +546,9 @@
 
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('adminEmail').value;
-      const password = document.getElementById('adminPassword').value;
+      // ตัดช่องว่างและปรับตัวพิมพ์เล็กอัตโนมัติสำหรับมือถือ
+      const email = document.getElementById('adminEmail').value.trim().toLowerCase();
+      const password = document.getElementById('adminPassword').value.trim();
       const btn = document.getElementById('loginSubmitBtn');
 
       btn.disabled = true;
@@ -554,6 +564,7 @@
         closeLoginModal();
         document.getElementById('loginForm').reset();
         switchTab('admin');
+        fetchDorms();
       }
 
       btn.disabled = false;
@@ -563,6 +574,7 @@
     async function logoutAdmin() {
       await db.auth.signOut();
       currentUser = null;
+      cancelEditMode();
       updateAdminUI();
       switchTab('public');
     }
@@ -592,7 +604,7 @@
     // ==========================================
     function calculateDistanceKm(lat1, lon1, lat2 = ARU_LAT, lon2 = ARU_LNG) {
       if (!lat1 || !lon1) return null;
-      const R = 6371; // รัศมีโลก (กม.)
+      const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const a = 
@@ -674,7 +686,6 @@
           (d.zone && d.zone.toLowerCase().includes(keyword)) ||
           (d.landmark && d.landmark.toLowerCase().includes(keyword));
         
-        // กรองช่วงราคา
         const minPrice = getMinPriceNumber(d);
         let matchPrice = true;
         if (priceFilter !== 'all') {
@@ -717,8 +728,6 @@
 
       grid.innerHTML = dorms.map(d => {
         const coverImg = d.cover_image_url || (d.photo_urls && d.photo_urls.length > 0 ? d.photo_urls[0] : 'https://placehold.co/600x400/e2e8f0/475569?text=ไม่มีรูปภาพประกอบ');
-        
-        // คำนวณระยะทาง (ใช้ค่าที่บันทึกไว้ หรือคำนวณสดจาก lat/lng)
         const dist = d.distance_km || calculateDistanceKm(d.latitude, d.longitude);
         const distBadge = dist !== null
           ? `<span class="bg-amber-100 text-amber-900 text-[11px] font-bold px-2 py-0.5 rounded">🏫 ห่าง มรภ. ${dist} กม.</span>`
@@ -783,7 +792,6 @@
       const dist = d.distance_km || calculateDistanceKm(d.latitude, d.longitude);
       const distInfo = dist !== null ? `<span class="text-xs font-bold bg-amber-100 text-amber-900 px-2.5 py-1 rounded-full">🏫 ห่างจาก มรภ.พระนครศรีอยุธยา ~${dist} กม.</span>` : '';
 
-      // แสดงสถานะกฎระเบียบ 3 ข้อหลัก
       const rules = d.dorm_rules || [];
       const rulePet = rules.includes('เลี้ยงสัตว์ได้') ? '✅ เลี้ยงสัตว์ได้' : '❌ ห้ามเลี้ยงสัตว์';
       const ruleCook = rules.includes('ทำอาหารได้ (ระเบียง/เตาไฟฟ้า)') ? '✅ ทำอาหารได้ (ระเบียง/เตาไฟฟ้า)' : '❌ ห้ามทำอาหาร';
@@ -795,7 +803,23 @@
            </a>`
         : '';
 
+      // ปุ่มแก้ไขและลบสำหรับเจ้าหน้าที่ที่ล็อกอินอยู่
+      const adminActionsHtml = currentUser
+        ? `<div class="bg-amber-50 border border-amber-300 p-3 rounded-xl flex flex-wrap justify-between items-center gap-2">
+            <span class="text-xs font-bold text-amber-900">🛠️ เครื่องมือเจ้าหน้าที่:</span>
+            <div class="flex gap-2">
+              <button onclick="startEditDorm(${d.id})" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
+                ✏️ แก้ไขข้อมูลหอพักนี้
+              </button>
+              <button onclick="deleteDorm(${d.id})" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
+                🗑️ ลบข้อมูล
+              </button>
+            </div>
+           </div>`
+        : '';
+
       document.getElementById('modalContent').innerHTML = `
+        ${adminActionsHtml}
         <div>
           <div class="flex flex-wrap gap-2 items-center">
             <span class="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full">${d.tenant_type || ''} • ${d.gender_zone || ''}</span>
@@ -818,7 +842,6 @@
           <div><strong>📌 สถานะ:</strong> ${d.vacancy_status || '-'} ${d.vacant_count ? `(ว่าง ~${d.vacant_count} ห้อง)` : ''}</div>
         </div>
 
-        <!-- กฎระเบียบหอพัก -->
         <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-200 space-y-1.5 text-sm">
           <div class="font-bold text-[#1B365D] mb-1">📋 กฎระเบียบสำคัญของหอพัก:</div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-semibold">
@@ -862,11 +885,125 @@
     }
 
     // ==========================================
-    // 5. ส่วนจัดการรูปภาพและบันทึกข้อมูลฝั่งแอดมิน
+    // 5. ระบบแก้ไขข้อมูล (EDIT) และลบข้อมูล (DELETE)
+    // ==========================================
+    function setCheckedValues(name, valuesArray) {
+      const arr = valuesArray || [];
+      document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+        cb.checked = arr.includes(cb.value);
+      });
+    }
+
+    function startEditDorm(id) {
+      const d = allDorms.find(item => item.id === id);
+      if (!d) return;
+
+      closeModal();
+      switchTab('admin');
+
+      document.getElementById('editingDormId').value = d.id;
+      document.getElementById('adminModeTitle').innerHTML = `✏️ <strong>กำลังแก้ไขข้อมูล: ${d.dorm_name}</strong>`;
+      document.getElementById('cancelEditBtn').classList.remove('hidden');
+      document.getElementById('submitBtn').innerText = '💾 บันทึกการแก้ไขข้อมูล';
+
+      // เติมค่าเดิมลงในฟอร์ม
+      document.getElementById('survey_date').value = d.survey_date || '';
+      document.getElementById('dorm_code').value = d.dorm_code || '';
+      document.getElementById('zone').value = d.zone || '';
+      document.getElementById('dorm_name').value = d.dorm_name || '';
+      document.getElementById('soi_road').value = d.soi_road || '';
+      document.getElementById('landmark').value = d.landmark || '';
+      document.getElementById('latitude').value = d.latitude || '';
+      document.getElementById('longitude').value = d.longitude || '';
+      document.getElementById('distance_km').value = d.distance_km || '';
+      document.getElementById('contact_name').value = d.contact_name || '';
+      document.getElementById('contact_role').value = d.contact_role || 'เจ้าของหอพัก';
+      document.getElementById('phone_1').value = d.phone_1 || '';
+      document.getElementById('phone_2_line').value = d.phone_2_line || '';
+      document.getElementById('tenant_type').value = d.tenant_type || 'เฉพาะนักศึกษา';
+      document.getElementById('gender_zone').value = d.gender_zone || 'หอพักรวม';
+      document.getElementById('has_fan_room').checked = !!d.has_fan_room;
+      document.getElementById('fan_room_count').value = d.fan_room_count || '';
+      document.getElementById('has_ac_room').checked = !!d.has_ac_room;
+      document.getElementById('ac_room_count').value = d.ac_room_count || '';
+
+      setCheckedValues('room_styles', d.room_styles);
+      setCheckedValues('dorm_rules', d.dorm_rules);
+      setCheckedValues('room_amenities', d.room_amenities);
+      setCheckedValues('common_amenities', d.common_amenities);
+      document.getElementById('wifi_fee').value = d.wifi_fee || '';
+      setCheckedValues('parking_security', d.parking_security);
+      document.getElementById('car_parking_fee').value = d.car_parking_fee || '';
+
+      document.getElementById('deposit_amount').value = d.deposit_amount || '';
+      document.getElementById('advance_rent_amount').value = d.advance_rent_amount || '';
+      document.getElementById('min_contract').value = d.min_contract || 'ไม่มี';
+      document.getElementById('fan_price_min').value = d.fan_price_min || '';
+      document.getElementById('fan_price_max').value = d.fan_price_max || '';
+      document.getElementById('ac_price_min').value = d.ac_price_min || '';
+      document.getElementById('ac_price_max').value = d.ac_price_max || '';
+      document.getElementById('water_rate').value = d.water_rate || '';
+      document.getElementById('electric_rate').value = d.electric_rate || '';
+      document.getElementById('other_monthly_fee').value = d.other_monthly_fee || '';
+
+      document.getElementById('vacancy_status').value = d.vacancy_status || 'ว่างพร้อมเข้าอยู่';
+      document.getElementById('vacant_count').value = d.vacant_count || '';
+      document.getElementById('allow_photo').checked = !!d.allow_photo;
+      document.getElementById('has_brochure').checked = !!d.has_brochure;
+      document.getElementById('notes').value = d.notes || '';
+      document.getElementById('surveyor_name').value = d.surveyor_name || '';
+      document.getElementById('surveyor_dept').value = d.surveyor_dept || '';
+      document.getElementById('surveyor_phone').value = d.surveyor_phone || '';
+
+      // โหลดรูปภาพเดิมมาแสดง
+      coverFile = null;
+      existingCoverUrl = d.cover_image_url || null;
+      if (existingCoverUrl) {
+        document.getElementById('coverPreviewImg').src = existingCoverUrl;
+        document.getElementById('coverPreviewBox').classList.remove('hidden');
+      } else {
+        removeCoverImage();
+      }
+
+      galleryFiles = [];
+      existingGalleryUrls = d.photo_urls ? [...d.photo_urls] : [];
+      renderGalleryPreviews();
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelEditMode() {
+      document.getElementById('editingDormId').value = '';
+      document.getElementById('adminModeTitle').innerHTML = `🛠️ <strong>โหมดเจ้าหน้าที่สำรวจข้อมูล (เพิ่มข้อมูลใหม่)</strong>`;
+      document.getElementById('cancelEditBtn').classList.add('hidden');
+      document.getElementById('submitBtn').innerText = '💾 บันทึกข้อมูลและรูปภาพเข้าสู่ระบบ';
+      document.getElementById('surveyForm').reset();
+      document.getElementById('survey_date').valueAsDate = new Date();
+      removeCoverImage();
+      galleryFiles = [];
+      existingGalleryUrls = [];
+      renderGalleryPreviews();
+    }
+
+    async function deleteDorm(id) {
+      if (!confirm('⚠️ ยืนยันการลบข้อมูลหอพักนี้ถาวรหรือไม่?')) return;
+      const { error } = await db.from('dormitories').delete().eq('id', id);
+      if (error) {
+        alert('ไม่สามารถลบข้อมูลได้: ' + error.message);
+      } else {
+        alert('🗑️ ลบข้อมูลหอพักเรียบร้อยแล้ว');
+        closeModal();
+        fetchDorms();
+      }
+    }
+
+    // ==========================================
+    // 6. ส่วนจัดการรูปภาพและบันทึกข้อมูลฝั่งแอดมิน
     // ==========================================
     function handleCoverFile(files) {
       if (files && files[0] && files[0].type.startsWith('image/')) {
         coverFile = files[0];
+        existingCoverUrl = null;
         const reader = new FileReader();
         reader.onload = (e) => {
           document.getElementById('coverPreviewImg').src = e.target.result;
@@ -880,6 +1017,7 @@
 
     function removeCoverImage() {
       coverFile = null;
+      existingCoverUrl = null;
       document.getElementById('coverPreviewBox').classList.add('hidden');
       document.getElementById('coverPreviewImg').src = '';
     }
@@ -898,14 +1036,29 @@
     function renderGalleryPreviews() {
       const container = document.getElementById('galleryPreviewContainer');
       container.innerHTML = '';
+
+      // แสดงรูปเดิมที่มีในฐานข้อมูล (กรณีแก้ไข)
+      existingGalleryUrls.forEach((url, index) => {
+        const div = document.createElement('div');
+        div.className = 'relative aspect-square rounded-lg overflow-hidden border border-slate-300 bg-white shadow-sm';
+        div.innerHTML = `
+          <img src="${url}" class="w-full h-full object-cover">
+          <button type="button" onclick="removeExistingGalleryImage(${index})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow">
+            ✕
+          </button>
+        `;
+        container.appendChild(div);
+      });
+
+      // แสดงรูปใหม่ที่เพิ่งเลือก/ถ่าย
       galleryFiles.forEach((file, index) => {
         const reader = new FileReader();
         reader.onload = (e) => {
           const div = document.createElement('div');
-          div.className = 'relative aspect-square rounded-lg overflow-hidden border border-slate-300 bg-white shadow-sm';
+          div.className = 'relative aspect-square rounded-lg overflow-hidden border border-blue-400 bg-white shadow-sm';
           div.innerHTML = `
             <img src="${e.target.result}" class="w-full h-full object-cover">
-            <button type="button" onclick="removeGalleryImage(${index})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow">
+            <button type="button" onclick="removeNewGalleryImage(${index})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow">
               ✕
             </button>
           `;
@@ -915,7 +1068,12 @@
       });
     }
 
-    function removeGalleryImage(index) {
+    function removeExistingGalleryImage(index) {
+      existingGalleryUrls.splice(index, 1);
+      renderGalleryPreviews();
+    }
+
+    function removeNewGalleryImage(index) {
       galleryFiles.splice(index, 1);
       renderGalleryPreviews();
     }
@@ -972,15 +1130,16 @@
       }
 
       const btn = document.getElementById('submitBtn');
+      const editingId = document.getElementById('editingDormId').value;
       btn.disabled = true;
 
-      let coverImageUrl = null;
+      let coverImageUrl = existingCoverUrl;
       if (coverFile) {
         btn.innerText = 'กำลังอัปโหลดภาพหน้าปก...';
         coverImageUrl = await uploadSingleFile(coverFile, 'cover');
       }
 
-      const photoUrls = [];
+      const photoUrls = [...existingGalleryUrls];
       for (let i = 0; i < galleryFiles.length; i++) {
         btn.innerText = `กำลังอัปโหลดภาพเพิ่มเติม (${i + 1}/${galleryFiles.length})...`;
         const url = await uploadSingleFile(galleryFiles[i], 'gallery');
@@ -1042,27 +1201,33 @@
         surveyor_phone: document.getElementById('surveyor_phone').value
       };
 
-      const { error } = await db.from('dormitories').insert([payload]);
+      let error = null;
+      if (editingId) {
+        const res = await db.from('dormitories').update(payload).eq('id', editingId);
+        error = res.error;
+      } else {
+        const res = await db.from('dormitories').insert([payload]);
+        error = res.error;
+      }
 
       if (error) {
         alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
       } else {
-        alert('✅ บันทึกข้อมูลและรูปภาพเรียบร้อยแล้ว!');
+        alert(editingId ? '✅ แก้ไขข้อมูลหอพักเรียบร้อยแล้ว!' : '✅ บันทึกข้อมูลและรูปภาพเรียบร้อยแล้ว!');
         const sName = document.getElementById('surveyor_name').value;
         const sDept = document.getElementById('surveyor_dept').value;
         const sPhone = document.getElementById('surveyor_phone').value;
         
-        document.getElementById('surveyForm').reset();
-        removeCoverImage();
-        galleryFiles = [];
-        renderGalleryPreviews();
-        
-        document.getElementById('survey_date').valueAsDate = new Date();
+        cancelEditMode();
         document.getElementById('surveyor_name').value = sName;
         document.getElementById('surveyor_dept').value = sDept;
         document.getElementById('surveyor_phone').value = sPhone;
         
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (editingId) {
+          switchTab('public');
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       }
 
       btn.disabled = false;
