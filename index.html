@@ -48,10 +48,10 @@
         <div>
           <select id="filterPrice" onchange="filterDorms()" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm bg-white">
             <option value="all">💰 งบประมาณ: ทั้งหมด</option>
-            <option value="3000">ไม่เกิน 3,000 บ./ด.</option>
-            <option value="4000">ไม่เกิน 4,000 บ./ด.</option>
-            <option value="5000">ไม่เกิน 5,000 บ./ด.</option>
-            <option value="5001">มากกว่า 5,000 บ./ด.</option>
+            <option value="3000">ไม่เกิน 3,000 บาท</option>
+            <option value="4000">ไม่เกิน 4,000 บาท</option>
+            <option value="5000">ไม่เกิน 5,000 บาท</option>
+            <option value="5001">มากกว่า 5,000 บาท</option>
           </select>
         </div>
         <div>
@@ -151,7 +151,7 @@
       </div>
     </div>
 
-    <!-- กล่องจัดการข้อมูลหอพักที่สำรวจแล้ว (ค้นหา / แก้ไข / อัปเดตสถานะ) -->
+    <!-- กล่องจัดการข้อมูลหอพักที่สำรวจแล้ว -->
     <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
       <div class="flex flex-wrap justify-between items-center gap-2 border-b pb-2.5">
         <h2 class="text-base md:text-lg font-bold text-[#1B365D]">📋 รายการหอพักที่สำรวจแล้ว (เลือกเพื่อแก้ไข/อัปเดต)</h2>
@@ -176,7 +176,7 @@
       <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label class="block text-sm font-semibold mb-1">วันที่สำรวจ / อัปเดต</label>
+            <label class="block text-sm font-semibold mb-1">วันที่สำรวจ / ปรับปรุงข้อมูล</label>
             <input type="date" id="survey_date" required class="w-full border rounded-lg p-2 text-sm">
           </div>
           <div>
@@ -192,8 +192,8 @@
 
       <!-- ส่วนอัปโหลดภาพหน้าปกหอพัก (COVER IMAGE) -->
       <div class="bg-white p-5 rounded-xl shadow-sm border-2 border-blue-200 space-y-3">
-        <h2 class="text-lg font-bold text-[#1B365D] border-b pb-2">🖼️ ภาพหน้าปกหอพัก (Cover Photo)</h2>
-        <p class="text-xs text-slate-600">เลือกภาพหน้าตึกหรือป้ายหอพักที่ชัดเจนที่สุด 1 ภาพ เพื่อใช้เป็นภาพหลักแสดงในหน้าค้นหา</p>
+        <h2 class="text-lg font-bold text-[#1B365D] border-b pb-2">🖼️ ภาพหน้าปกหอพัก (Cover Photo - เต็มเฟรม)</h2>
+        <p class="text-xs text-slate-600">เลือกภาพหน้าตึกหรือป้ายหอพักที่ชัดเจนที่สุด 1 ภาพ ระบบจะแสดงภาพขนาดเต็มเฟรมโดยไม่ตัดขอบภาพ</p>
         
         <div class="grid grid-cols-2 gap-3">
           <label class="cursor-pointer bg-[#1B365D] hover:bg-blue-900 text-white text-sm font-semibold py-2.5 px-3 rounded-lg text-center shadow-sm flex items-center justify-center gap-1.5">
@@ -206,9 +206,9 @@
           </label>
         </div>
 
-        <div id="coverPreviewBox" class="hidden relative w-full h-52 rounded-xl overflow-hidden border border-slate-300 bg-slate-100">
-          <img id="coverPreviewImg" src="" class="w-full h-full object-cover">
-          <button type="button" onclick="removeCoverImage()" class="absolute top-2 right-2 bg-red-600 text-white rounded-full px-3 py-1 text-xs font-bold shadow">
+        <div id="coverPreviewBox" class="hidden relative w-full rounded-xl overflow-hidden border border-slate-300 bg-slate-900 flex items-center justify-center">
+          <img id="coverPreviewImg" src="" class="w-full h-auto max-h-[420px] object-contain">
+          <button type="button" onclick="removeCoverImage()" class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full px-3 py-1 text-xs font-bold shadow">
             ✕ ลบภาพหน้าปก
           </button>
         </div>
@@ -402,42 +402,72 @@
               <option value="ไม่มี">ไม่มีสัญญาขั้นต่ำ</option>
               <option value="3 เดือน">3 เดือน</option>
               <option value="6 เดือน">6 เดือน</option>
+              <option value="เทอม/ภาคเรียน">เทอม/ภาคเรียน</option>
               <option value="1 ปี">1 ปี</option>
             </select>
           </div>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
-          <div>
-            <label class="block text-xs font-semibold mb-1">ห้องพัดลม (เริ่มต้น)</label>
-            <input type="number" id="fan_price_min" placeholder="บาท/เดือน" class="w-full border rounded-lg p-2 text-sm">
+        <!-- อัตราค่าเช่าห้องพัดลม และ ห้องแอร์ (ระบุราคา + เลือกหน่วย บาท/เดือน หรือ บาท/คน/เทอม) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
+            <label class="block text-sm font-bold text-slate-800">🌀 ราคาห้องพัดลม</label>
+            <div class="flex gap-2">
+              <input type="number" id="fan_price" placeholder="ระบุราคา (บาท)" class="w-1/2 border rounded-lg p-2 text-sm bg-white">
+              <select id="fan_price_unit" class="w-1/2 border rounded-lg p-2 text-sm bg-white font-semibold">
+                <option value="บาท/เดือน">บาท/เดือน</option>
+                <option value="บาท/คน/เทอม">บาท/คน/เทอม</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label class="block text-xs font-semibold mb-1">ห้องพัดลม (สูงสุด)</label>
-            <input type="number" id="fan_price_max" placeholder="บาท/เดือน" class="w-full border rounded-lg p-2 text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold mb-1">ห้องแอร์ (เริ่มต้น)</label>
-            <input type="number" id="ac_price_min" placeholder="บาท/เดือน" class="w-full border rounded-lg p-2 text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold mb-1">ห้องแอร์ (สูงสุด)</label>
-            <input type="number" id="ac_price_max" placeholder="บาท/เดือน" class="w-full border rounded-lg p-2 text-sm">
+
+          <div class="bg-blue-50/50 p-3.5 rounded-xl border border-blue-200 space-y-2">
+            <label class="block text-sm font-bold text-[#1B365D]">❄️ ราคาห้องแอร์</label>
+            <div class="flex gap-2">
+              <input type="number" id="ac_price" placeholder="ระบุราคา (บาท)" class="w-1/2 border rounded-lg p-2 text-sm bg-white">
+              <select id="ac_price_unit" class="w-1/2 border rounded-lg p-2 text-sm bg-white font-semibold">
+                <option value="บาท/เดือน">บาท/เดือน</option>
+                <option value="บาท/คน/เทอม">บาท/คน/เทอม</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-semibold mb-1">ค่าน้ำประปา</label>
-            <input type="text" id="water_rate" placeholder="เช่น 18 บ./หน่วย หรือ เหมา 100 บ." class="w-full border rounded-lg p-2 text-sm">
+        <!-- ค่าน้ำประปา (เลือกอย่างใดอย่างหนึ่ง) -->
+        <div class="bg-cyan-50/50 p-4 rounded-xl border border-cyan-200 space-y-2.5">
+          <label class="block text-sm font-bold text-[#1B365D]">💧 ค่าน้ำประปา (เลือกอย่างใดอย่างหนึ่ง)</label>
+          <div class="space-y-2 text-sm">
+            <label class="flex flex-wrap items-center gap-2 bg-white p-2.5 rounded-lg border border-cyan-100 cursor-pointer">
+              <input type="radio" name="water_rate_type" value="unit" onchange="toggleWaterInputs()" checked class="w-4 h-4">
+              <span class="font-semibold">ใช้ตามจริง</span>
+              <input type="number" step="0.1" id="water_unit_val" placeholder="ระบุตัวเลข" class="w-28 border rounded-lg px-2.5 py-1 text-sm">
+              <span>บาท/หน่วย</span>
+            </label>
+
+            <label class="flex flex-wrap items-center gap-2 bg-white p-2.5 rounded-lg border border-cyan-100 cursor-pointer">
+              <input type="radio" name="water_rate_type" value="month" onchange="toggleWaterInputs()" class="w-4 h-4">
+              <span class="font-semibold">เหมาจ่าย</span>
+              <input type="number" step="0.1" id="water_month_val" placeholder="ระบุตัวเลข" disabled class="w-28 border rounded-lg px-2.5 py-1 text-sm bg-slate-100">
+              <span>บาท/เดือน</span>
+            </label>
+
+            <label class="flex flex-wrap items-center gap-2 bg-white p-2.5 rounded-lg border border-cyan-100 cursor-pointer">
+              <input type="radio" name="water_rate_type" value="person" onchange="toggleWaterInputs()" class="w-4 h-4">
+              <span class="font-semibold">เหมาจ่าย</span>
+              <input type="number" step="0.1" id="water_person_val" placeholder="ระบุตัวเลข" disabled class="w-28 border rounded-lg px-2.5 py-1 text-sm bg-slate-100">
+              <span>บาท/คน</span>
+            </label>
           </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-semibold mb-1">ค่าไฟฟ้า (บาท/หน่วย)</label>
+            <label class="block text-sm font-semibold mb-1">⚡ ค่าไฟฟ้า (บาท/หน่วย)</label>
             <input type="number" step="0.1" id="electric_rate" placeholder="เช่น 7" class="w-full border rounded-lg p-2 text-sm">
           </div>
           <div>
             <label class="block text-sm font-semibold mb-1">ค่าส่วนกลาง/ขยะ (ถ้ามี)</label>
-            <input type="text" id="other_monthly_fee" placeholder="ระบุจำนวนเงิน" class="w-full border rounded-lg p-2 text-sm">
+            <input type="text" id="other_monthly_fee" placeholder="ระบุจำนวนเงิน เช่น 50 บาท/เดือน" class="w-full border rounded-lg p-2 text-sm">
           </div>
         </div>
       </div>
@@ -533,6 +563,95 @@
     let existingGalleryUrls = [];
 
     document.getElementById('survey_date').valueAsDate = new Date();
+
+    // จัดการการเปิด/ปิดช่องกรอกตัวเลขค่าน้ำประปาตาม Radio ที่เลือก
+    function toggleWaterInputs() {
+      const selected = document.querySelector('input[name="water_rate_type"]:checked')?.value || 'unit';
+      const uInput = document.getElementById('water_unit_val');
+      const mInput = document.getElementById('water_month_val');
+      const pInput = document.getElementById('water_person_val');
+
+      uInput.disabled = selected !== 'unit';
+      mInput.disabled = selected !== 'month';
+      pInput.disabled = selected !== 'person';
+
+      uInput.classList.toggle('bg-slate-100', selected !== 'unit');
+      mInput.classList.toggle('bg-slate-100', selected !== 'month');
+      pInput.classList.toggle('bg-slate-100', selected !== 'person');
+    }
+
+    // รวมข้อมูลค่าน้ำประปาเป็นข้อความสำหรับบันทึก
+    function buildWaterRateString() {
+      const selected = document.querySelector('input[name="water_rate_type"]:checked')?.value || 'unit';
+      if (selected === 'unit') {
+        const v = document.getElementById('water_unit_val').value;
+        return v ? `ใช้ตามจริง ${v} บาท/หน่วย` : '';
+      }
+      if (selected === 'month') {
+        const v = document.getElementById('water_month_val').value;
+        return v ? `เหมาจ่าย ${v} บาท/เดือน` : '';
+      }
+      if (selected === 'person') {
+        const v = document.getElementById('water_person_val').value;
+        return v ? `เหมาจ่าย ${v} บาท/คน` : '';
+      }
+      return '';
+    }
+
+    // แยกข้อความค่าน้ำประปาเดิมกลับมาใส่ช่อง Radio & Input (ตอนกดแก้ไข)
+    function parseWaterRateToForm(waterStr) {
+      document.getElementById('water_unit_val').value = '';
+      document.getElementById('water_month_val').value = '';
+      document.getElementById('water_person_val').value = '';
+
+      const str = waterStr || '';
+      const numMatch = str.match(/(\d+(\.\d+)?)/);
+      const numVal = numMatch ? numMatch[1] : '';
+
+      if (str.includes('บาท/เดือน')) {
+        document.querySelector('input[name="water_rate_type"][value="month"]').checked = true;
+        document.getElementById('water_month_val').value = numVal;
+      } else if (str.includes('บาท/คน')) {
+        document.querySelector('input[name="water_rate_type"][value="person"]').checked = true;
+        document.getElementById('water_person_val').value = numVal;
+      } else {
+        document.querySelector('input[name="water_rate_type"][value="unit"]').checked = true;
+        document.getElementById('water_unit_val').value = numVal;
+      }
+      toggleWaterInputs();
+    }
+
+    // ดึงหน่วยราคาห้อง (บาท/เดือน หรือ บาท/คน/เทอม) โดยเก็บแท็กไว้ใน other_monthly_fee อย่างแนบเนียน
+    function extractPriceUnits(d) {
+      let fanUnit = 'บาท/เดือน';
+      let acUnit = 'บาท/เดือน';
+      let cleanOtherFee = d.other_monthly_fee || '';
+
+      const unitMatch = cleanOtherFee.match(/\[UNIT:([^|]*)\|([^\]]*)\]/);
+      if (unitMatch) {
+        fanUnit = unitMatch[1] || 'บาท/เดือน';
+        acUnit = unitMatch[2] || 'บาท/เดือน';
+        cleanOtherFee = cleanOtherFee.replace(unitMatch[0], '').trim();
+      }
+      return { fanUnit, acUnit, cleanOtherFee };
+    }
+
+    // ฟังก์ชันแปลงวันที่เป็นภาษาไทย เช่น 30 พ.ย. 2569
+    function formatThaiDate(dateStr) {
+      if (!dateStr) return null;
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+      return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+    }
+
+    function getLastUpdatedText(d) {
+      const surveyDateText = formatThaiDate(d.survey_date);
+      const systemUpdatedText = formatThaiDate(d.updated_at || d.created_at);
+      if (surveyDateText) return `สำรวจ/ปรับปรุงข้อมูล: ${surveyDateText}`;
+      if (systemUpdatedText) return `ปรับปรุงข้อมูลล่าสุด: ${systemUpdatedText}`;
+      return 'ไม่ได้ระบุวันที่สำรวจ';
+    }
 
     // ==========================================
     // 2. ระบบยืนยันตัวตน SUPABASE AUTH
@@ -719,7 +838,7 @@
                 <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${statusColor}">${d.vacancy_status || 'ไม่ระบุ'}</span>
               </div>
               <div class="text-xs text-slate-500 mt-0.5">
-                📍 ${d.zone || '-'} • 📞 ${d.phone_1 || '-'} • อัปเดตล่าสุด: ${d.survey_date || '-'}
+                📍 ${d.zone || '-'} • 📞 ${d.phone_1 || '-'} • 📅 ${getLastUpdatedText(d)}
               </div>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
@@ -787,9 +906,17 @@
     }
 
     function getStartingPriceText(d) {
-      const minPrice = getMinPriceNumber(d);
-      if (minPrice === null) return 'สอบถามราคา';
-      return `เริ่มต้น ${minPrice.toLocaleString()} บ./ด.`;
+      const { fanUnit, acUnit } = extractPriceUnits(d);
+      const options = [];
+      if (d.fan_price_min && d.fan_price_min > 0) {
+        options.push({ price: d.fan_price_min, unit: fanUnit });
+      }
+      if (d.ac_price_min && d.ac_price_min > 0) {
+        options.push({ price: d.ac_price_min, unit: acUnit });
+      }
+      if (options.length === 0) return 'สอบถามราคา';
+      options.sort((a, b) => a.price - b.price);
+      return `${options[0].price.toLocaleString()} ${options[0].unit}`;
     }
 
     function renderDormCards(dorms) {
@@ -800,7 +927,7 @@
       }
 
       grid.innerHTML = dorms.map(d => {
-        const coverImg = d.cover_image_url || (d.photo_urls && d.photo_urls.length > 0 ? d.photo_urls[0] : 'https://placehold.co/600x400/e2e8f0/475569?text=ไม่มีรูปภาพประกอบ');
+        const coverImg = d.cover_image_url || (d.photo_urls && d.photo_urls.length > 0 ? d.photo_urls[0] : 'https://placehold.co/600x400/e2e8f0/475569?text=No+Photo');
         const dist = d.distance_km || calculateDistanceKm(d.latitude, d.longitude);
         const distBadge = dist !== null
           ? `<span class="bg-amber-100 text-amber-900 text-[11px] font-bold px-2 py-0.5 rounded">🏫 ห่าง มรภ. ${dist} กม.</span>`
@@ -814,10 +941,10 @@
 
         return `
           <div onclick="openModal(${d.id})" class="bg-white rounded-2xl shadow-sm hover:shadow-md border border-slate-200 overflow-hidden cursor-pointer transition flex flex-col">
-            <div class="relative h-48 bg-slate-200">
-              <img src="${coverImg}" alt="${d.dorm_name}" class="w-full h-full object-cover">
+            <div class="relative h-56 bg-slate-900 flex items-center justify-center overflow-hidden">
+              <img src="${coverImg}" alt="${d.dorm_name}" class="w-full h-full object-contain">
               <div class="absolute top-3 left-3">${statusBadge}</div>
-              <div class="absolute bottom-2 right-2 bg-[#1B365D]/90 text-white text-xs font-bold px-3 py-1 rounded-lg">
+              <div class="absolute bottom-2 right-2 bg-[#1B365D]/95 text-white text-xs font-bold px-3 py-1 rounded-lg shadow">
                 ${getStartingPriceText(d)}
               </div>
             </div>
@@ -831,12 +958,17 @@
                 <p class="text-xs text-slate-500 line-clamp-1 mt-0.5">${d.soi_road || ''} ${d.landmark ? '(' + d.landmark + ')' : ''}</p>
               </div>
 
-              <div class="flex flex-wrap gap-1.5 pt-2 border-t text-[11px] text-slate-600">
-                ${d.has_fan_room ? '<span class="bg-slate-100 px-2 py-0.5 rounded">🌀 พัดลม</span>' : ''}
-                ${d.has_ac_room ? '<span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded">❄️ แอร์</span>' : ''}
-                ${rules.includes('เลี้ยงสัตว์ได้') ? '<span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">🐾 เลี้ยงสัตว์ได้</span>' : ''}
-                ${rules.includes('ทำอาหารได้ (ระเบียง/เตาไฟฟ้า)') ? '<span class="bg-orange-50 text-orange-700 px-2 py-0.5 rounded">🍳 ทำอาหารได้</span>' : ''}
-                ${(d.parking_security || []).includes('ที่จอดรถยนต์') ? '<span class="bg-slate-100 px-2 py-0.5 rounded">🚗 จอดรถยนต์</span>' : ''}
+              <div class="space-y-2 pt-2 border-t">
+                <div class="flex flex-wrap gap-1.5 text-[11px] text-slate-600">
+                  ${d.has_fan_room ? '<span class="bg-slate-100 px-2 py-0.5 rounded">🌀 พัดลม</span>' : ''}
+                  ${d.has_ac_room ? '<span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded">❄️ แอร์</span>' : ''}
+                  ${rules.includes('เลี้ยงสัตว์ได้') ? '<span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">🐾 เลี้ยงสัตว์ได้</span>' : ''}
+                  ${rules.includes('ทำอาหารได้ (ระเบียง/เตาไฟฟ้า)') ? '<span class="bg-orange-50 text-orange-700 px-2 py-0.5 rounded">🍳 ทำอาหารได้</span>' : ''}
+                  ${(d.parking_security || []).includes('ที่จอดรถยนต์') ? '<span class="bg-slate-100 px-2 py-0.5 rounded">🚗 จอดรถยนต์</span>' : ''}
+                </div>
+                <div class="text-[11px] text-slate-500 flex items-center gap-1 pt-1 border-t border-slate-100">
+                  <span>🗓️ ${getLastUpdatedText(d)}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -848,19 +980,33 @@
       const d = allDorms.find(item => item.id === id);
       if (!d) return;
 
-      const allPhotos = [];
-      if (d.cover_image_url) allPhotos.push(d.cover_image_url);
-      if (d.photo_urls && d.photo_urls.length > 0) {
-        d.photo_urls.forEach(url => {
-          if (url !== d.cover_image_url) allPhotos.push(url);
-        });
-      }
+      const { fanUnit, acUnit, cleanOtherFee } = extractPriceUnits(d);
 
-      const photoGalleryHtml = allPhotos.length > 0
-        ? `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            ${allPhotos.map(url => `<a href="${url}" target="_blank"><img src="${url}" class="w-full h-32 object-cover rounded-lg border hover:opacity-90"></a>`).join('')}
+      const fanPriceDisplay = d.has_fan_room
+        ? (d.fan_price_min ? `${d.fan_price_min.toLocaleString()} ${fanUnit}` : 'มีห้องพัดลม (สอบถามราคา)')
+        : 'ไม่มี';
+
+      const acPriceDisplay = d.has_ac_room
+        ? (d.ac_price_min ? `${d.ac_price_min.toLocaleString()} ${acUnit}` : 'มีห้องแอร์ (สอบถามราคา)')
+        : 'ไม่มี';
+
+      const coverHtml = d.cover_image_url
+        ? `<div class="rounded-xl overflow-hidden border border-slate-200 bg-slate-900 flex items-center justify-center">
+            <a href="${d.cover_image_url}" target="_blank" title="คลิกเพื่อดูภาพขนาดเต็ม">
+              <img src="${d.cover_image_url}" class="w-full h-auto max-h-[450px] object-contain">
+            </a>
            </div>`
-        : `<div class="text-center py-6 bg-slate-100 rounded-xl text-sm text-slate-500">ไม่มีภาพถ่ายประกอบ</div>`;
+        : '';
+
+      const extraPhotos = (d.photo_urls || []).filter(url => url !== d.cover_image_url);
+      const photoGalleryHtml = extraPhotos.length > 0
+        ? `<div class="space-y-1.5">
+            <div class="text-xs font-bold text-slate-600">📸 ภาพบรรยากาศเพิ่มเติม (${extraPhotos.length} ภาพ)</div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              ${extraPhotos.map(url => `<a href="${url}" target="_blank"><img src="${url}" class="w-full h-32 object-cover rounded-lg border hover:opacity-90"></a>`).join('')}
+            </div>
+           </div>`
+        : (!d.cover_image_url ? `<div class="text-center py-6 bg-slate-100 rounded-xl text-sm text-slate-500">ไม่มีภาพถ่ายประกอบ</div>` : '');
 
       const dist = d.distance_km || calculateDistanceKm(d.latitude, d.longitude);
       const distInfo = dist !== null ? `<span class="text-xs font-bold bg-amber-100 text-amber-900 px-2.5 py-1 rounded-full">🏫 ห่างจาก มรภ.พระนครศรีอยุธยา ~${dist} กม.</span>` : '';
@@ -896,22 +1042,25 @@
           <div class="flex flex-wrap gap-2 items-center">
             <span class="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full">${d.tenant_type || ''} • ${d.gender_zone || ''}</span>
             ${distInfo}
+            <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">🗓️ ${getLastUpdatedText(d)}</span>
           </div>
           <h2 class="text-2xl font-bold text-slate-900 mt-2">${d.dorm_name}</h2>
           <p class="text-sm text-slate-600 mt-1">📍 ${d.soi_road || '-'} ${d.landmark ? '(ใกล้ ' + d.landmark + ')' : ''}</p>
         </div>
 
+        ${coverHtml}
         ${photoGalleryHtml}
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border text-sm">
-          <div><strong>🌀 ห้องพัดลม:</strong> ${d.has_fan_room ? `${d.fan_price_min || '?'} - ${d.fan_price_max || '?'} บาท/เดือน` : 'ไม่มี'}</div>
-          <div><strong>❄️ ห้องแอร์:</strong> ${d.has_ac_room ? `${d.ac_price_min || '?'} - ${d.ac_price_max || '?'} บาท/เดือน` : 'ไม่มี'}</div>
+          <div><strong>🌀 ห้องพัดลม:</strong> ${fanPriceDisplay}</div>
+          <div><strong>❄️ ห้องแอร์:</strong> ${acPriceDisplay}</div>
           <div><strong>💧 ค่าน้ำ:</strong> ${d.water_rate || '-'}</div>
           <div><strong>⚡ ค่าไฟ:</strong> ${d.electric_rate ? d.electric_rate + ' บาท/หน่วย' : '-'}</div>
           <div><strong>💰 ค่ามัดจำ/ประกัน:</strong> ${d.deposit_amount ? d.deposit_amount.toLocaleString() + ' บาท' : '-'}</div>
           <div><strong>💵 ค่าเช่าล่วงหน้า:</strong> ${d.advance_rent_amount ? d.advance_rent_amount.toLocaleString() + ' บาท' : '-'}</div>
           <div><strong>📄 สัญญาขั้นต่ำ:</strong> ${d.min_contract || '-'}</div>
           <div><strong>📌 สถานะ:</strong> ${d.vacancy_status || '-'} ${d.vacant_count ? `(ว่าง ~${d.vacant_count} ห้อง)` : ''}</div>
+          ${cleanOtherFee ? `<div class="sm:col-span-2"><strong>🧾 ค่าส่วนกลาง/ขยะ:</strong> ${cleanOtherFee}</div>` : ''}
         </div>
 
         <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-200 space-y-1.5 text-sm">
@@ -973,6 +1122,8 @@
       closeModal();
       switchTab('admin');
 
+      const { fanUnit, acUnit, cleanOtherFee } = extractPriceUnits(d);
+
       document.getElementById('editingDormId').value = d.id;
       document.getElementById('formHeaderTitle').innerText = `✏️ กำลังแก้ไขข้อมูล: ${d.dorm_name}`;
       document.getElementById('formHeaderBadge').innerText = 'โหมดแก้ไข / อัปเดต';
@@ -982,8 +1133,7 @@
       document.getElementById('submitBtn').innerText = '💾 บันทึกการอัปเดตข้อมูล';
       document.getElementById('submitBtn').className = 'flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3.5 rounded-xl shadow-lg text-lg transition';
 
-      // เติมค่าเดิมลงในฟอร์ม
-      document.getElementById('survey_date').value = d.survey_date || '';
+      document.getElementById('survey_date').valueAsDate = new Date();
       document.getElementById('dorm_code').value = d.dorm_code || '';
       document.getElementById('zone').value = d.zone || '';
       document.getElementById('dorm_name').value = d.dorm_name || '';
@@ -1014,13 +1164,15 @@
       document.getElementById('deposit_amount').value = d.deposit_amount || '';
       document.getElementById('advance_rent_amount').value = d.advance_rent_amount || '';
       document.getElementById('min_contract').value = d.min_contract || 'ไม่มี';
-      document.getElementById('fan_price_min').value = d.fan_price_min || '';
-      document.getElementById('fan_price_max').value = d.fan_price_max || '';
-      document.getElementById('ac_price_min').value = d.ac_price_min || '';
-      document.getElementById('ac_price_max').value = d.ac_price_max || '';
-      document.getElementById('water_rate').value = d.water_rate || '';
+
+      document.getElementById('fan_price').value = d.fan_price_min || '';
+      document.getElementById('fan_price_unit').value = fanUnit;
+      document.getElementById('ac_price').value = d.ac_price_min || '';
+      document.getElementById('ac_price_unit').value = acUnit;
+
+      parseWaterRateToForm(d.water_rate);
       document.getElementById('electric_rate').value = d.electric_rate || '';
-      document.getElementById('other_monthly_fee').value = d.other_monthly_fee || '';
+      document.getElementById('other_monthly_fee').value = cleanOtherFee;
 
       document.getElementById('vacancy_status').value = d.vacancy_status || 'ว่างพร้อมเข้าอยู่';
       document.getElementById('vacant_count').value = d.vacant_count || '';
@@ -1031,7 +1183,6 @@
       document.getElementById('surveyor_dept').value = d.surveyor_dept || '';
       document.getElementById('surveyor_phone').value = d.surveyor_phone || '';
 
-      // โหลดรูปภาพเดิมมาแสดง
       coverFile = null;
       existingCoverUrl = d.cover_image_url || null;
       if (existingCoverUrl) {
@@ -1059,6 +1210,7 @@
       document.getElementById('submitBtn').className = 'flex-1 bg-[#1B365D] hover:bg-blue-900 text-white font-bold py-3.5 rounded-xl shadow-lg text-lg transition';
       document.getElementById('surveyForm').reset();
       document.getElementById('survey_date').valueAsDate = new Date();
+      toggleWaterInputs();
       removeCoverImage();
       galleryFiles = [];
       existingGalleryUrls = [];
@@ -1159,7 +1311,7 @@
       renderGalleryPreviews();
     }
 
-    function compressImage(file, maxWidth = 1200, quality = 0.75) {
+    function compressImage(file, maxWidth = 1600, quality = 0.85) {
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -1193,6 +1345,7 @@
 
       if (error) {
         console.error('Upload error:', error);
+        alert('อัปโหลดรูปภาพไม่สำเร็จ: ' + error.message);
         return null;
       }
       const { data } = db.storage.from('dorm-images').getPublicUrl(fileName);
@@ -1233,6 +1386,15 @@
       const lngVal = parseFloat(document.getElementById('longitude').value) || null;
       const distVal = parseFloat(document.getElementById('distance_km').value) || calculateDistanceKm(latVal, lngVal);
 
+      const fanPriceVal = parseFloat(document.getElementById('fan_price').value) || null;
+      const fanUnitVal = document.getElementById('fan_price_unit').value;
+      const acPriceVal = parseFloat(document.getElementById('ac_price').value) || null;
+      const acUnitVal = document.getElementById('ac_price_unit').value;
+
+      const rawOtherFee = document.getElementById('other_monthly_fee').value.trim();
+      const unitTag = `[UNIT:${fanUnitVal}|${acUnitVal}]`;
+      const combinedOtherFee = rawOtherFee ? `${rawOtherFee} ${unitTag}` : unitTag;
+
       const payload = {
         survey_date: document.getElementById('survey_date').value || null,
         dorm_code: document.getElementById('dorm_code').value,
@@ -1264,13 +1426,13 @@
         deposit_amount: parseFloat(document.getElementById('deposit_amount').value) || null,
         advance_rent_amount: parseFloat(document.getElementById('advance_rent_amount').value) || null,
         min_contract: document.getElementById('min_contract').value,
-        fan_price_min: parseFloat(document.getElementById('fan_price_min').value) || null,
-        fan_price_max: parseFloat(document.getElementById('fan_price_max').value) || null,
-        ac_price_min: parseFloat(document.getElementById('ac_price_min').value) || null,
-        ac_price_max: parseFloat(document.getElementById('ac_price_max').value) || null,
-        water_rate: document.getElementById('water_rate').value,
+        fan_price_min: fanPriceVal,
+        fan_price_max: null,
+        ac_price_min: acPriceVal,
+        ac_price_max: null,
+        water_rate: buildWaterRateString(),
         electric_rate: parseFloat(document.getElementById('electric_rate').value) || null,
-        other_monthly_fee: document.getElementById('other_monthly_fee').value,
+        other_monthly_fee: combinedOtherFee,
         vacancy_status: document.getElementById('vacancy_status').value,
         vacant_count: parseInt(document.getElementById('vacant_count').value) || null,
         allow_photo: document.getElementById('allow_photo').checked,
@@ -1313,6 +1475,7 @@
     });
 
     // เริ่มต้นทำงานเมื่อเปิดหน้าเว็บ
+    toggleWaterInputs();
     checkAuthSession();
     fetchDorms();
   </script>
